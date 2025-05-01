@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tính Tiền Cho Khách</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 70%;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f9f9f9;
+        }
+        input[type="number"], input[type="text"], input[type="date"] {
+            padding: 5px;
+            width: 120px;
+            text-align: center;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .total {
+            text-align: right;
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .button-delete {
+            background-color: #f44336;
+        }
+        .button-delete:hover {
+            background-color: #d32f2f;
+        }
+        .button-save {
+            background-color: #2196F3;
+        }
+        .button-save:hover {
+            background-color: #1976D2;
+        }
+        .input-group {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .input-group input {
+            margin: 0 5px;
+        }
+        .input-group label {
+            margin: 0 5px;
+        }
+    </style>
+
+    <!-- Thêm thư viện SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Tính Tiền Cho Khách</h1>
+
+        <!-- Ô nhập tỉnh/thành phố và ngày tháng năm -->
+        <div class="input-group">
+            <label for="customerCity">Tỉnh/TP:</label>
+            <input type="text" id="customerCity" placeholder="Nhập tỉnh/thành phố">
+            <label for="customerDate">Ngày tháng:</label>
+            <input type="date" id="customerDate">
+        </div>
+
+        <!-- Ô nhập thêm sản phẩm -->
+        <div class="input-group">
+            <input type="text" id="newProductName" placeholder="Tên sản phẩm">
+            <input type="number" id="newProductPrice" placeholder="Giá sản phẩm (VNĐ)" min="0">
+            <input type="number" id="newProductQty" placeholder="Số lượng" min="0">
+            <button class="button" onclick="addProduct()">Thêm Sản Phẩm</button>
+        </div>
+
+        <!-- Bảng sản phẩm -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Sản Phẩm</th>
+                    <th>Giá</th>
+                    <th>Số Lượng</th>
+                    <th>Tổng Tiền</th>
+                    <th>Hành Động</th>
+                </tr>
+            </thead>
+            <tbody id="productTable">
+                <tr>
+                    <td>Sản phẩm 1</td>
+                    <td data-price="100000">100.000 VNĐ</td>
+                    <td><input type="number" value="0" min="0" onchange="calculateTotal()"></td>
+                    <td><span>0</span> VNĐ</td>
+                    <td><button class="button button-delete" onclick="deleteRow(this)">Xoá</button></td>
+                </tr>
+                <tr>
+                    <td>Sản phẩm 2</td>
+                    <td data-price="150000">150.000 VNĐ</td>
+                    <td><input type="number" value="0" min="0" onchange="calculateTotal()"></td>
+                    <td><span>0</span> VNĐ</td>
+                    <td><button class="button button-delete" onclick="deleteRow(this)">Xoá</button></td>
+                </tr>
+                <tr>
+                    <td>Sản phẩm 3</td>
+                    <td data-price="200000">200.000 VNĐ</td>
+                    <td><input type="number" value="0" min="0" onchange="calculateTotal()"></td>
+                    <td><span>0</span> VNĐ</td>
+                    <td><button class="button button-delete" onclick="deleteRow(this)">Xoá</button></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Tổng tiền -->
+        <div class="total">
+            Tổng tiền: <span id="finalTotal">0</span> VNĐ
+        </div>
+
+        <!-- Nút Lưu Excel -->
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="button button-save" onclick="saveExcel()">Lưu Excel</button>
+        </div>
+
+        <!-- Nút tính lại -->
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="button" onclick="calculateTotal()">Tính Lại</button>
+        </div>
+    </div>
+
+    <script>
+        function calculateTotal() {
+            const rows = document.querySelectorAll('#productTable tr');
+            let finalTotal = 0;
+
+            rows.forEach(row => {
+                const price = parseInt(row.querySelector('td[data-price]').getAttribute('data-price'));
+                const qty = parseInt(row.querySelector('input').value) || 0;
+                const total = price * qty;
+                row.querySelector('span').innerText = total.toLocaleString();
+                finalTotal += total;
+            });
+
+            document.getElementById('finalTotal').innerText = finalTotal.toLocaleString();
+        }
+
+        function addProduct() {
+            const name = document.getElementById('newProductName').value.trim();
+            const price = parseInt(document.getElementById('newProductPrice').value);
+            const qty = parseInt(document.getElementById('newProductQty').value) || 0;
+
+            if (name === '' || isNaN(price) || price <= 0) {
+                alert('Vui lòng nhập tên sản phẩm và giá hợp lệ!');
+                return;
+            }
+
+            const table = document.getElementById('productTable');
+            const newRow = document.createElement('tr');
+
+            newRow.innerHTML = `
+                <td>${name}</td>
+                <td data-price="${price}">${price.toLocaleString()} VNĐ</td>
+                <td><input type="number" value="${qty}" min="0" onchange="calculateTotal()"></td>
+                <td><span>0</span> VNĐ</td>
+                <td><button class="button button-delete" onclick="deleteRow(this)">Xoá</button></td>
+            `;
+
+            table.appendChild(newRow);
+
+            document.getElementById('newProductName').value = '';
+            document.getElementById('newProductPrice').value = '';
+            document.getElementById('newProductQty').value = '';
+
+            calculateTotal();
+        }
+
+        function deleteRow(button) {
+            const row = button.parentElement.parentElement;
+            row.remove();
+            calculateTotal();
+        }
+
+        function saveExcel() {
+            const city = document.getElementById('customerCity').value;
+            const date = document.getElementById('customerDate').value;
+            const products = [];
+
+            document.querySelectorAll('#productTable tr').forEach(row => {
+                const name = row.querySelector('td').innerText;
+                const price = parseInt(row.querySelector('td[data-price]').getAttribute('data-price'));
+                const qty = parseInt(row.querySelector('input').value) || 0;
+                const total = price * qty;
+
+                products.push({
+                    name: name,
+                    price: price,
+                    qty: qty,
+                    total: total
+                });
+            });
+
+            const data = {
+                city: city,
+                date: date,
+                products: products,
+                totalAmount: parseInt(document.getElementById('finalTotal').innerText.replace(/,/g, ''))
+            };
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(products.map(item => ({
+                'Sản Phẩm': item.name,
+                'Giá (VNĐ)': item.price.toLocaleString(),
+                'Số Lượng': item.qty,
+                'Tổng Tiền (VNĐ)': item.total.toLocaleString()
+            })));
+
+            XLSX.utils.book_append_sheet(wb, ws, "Hóa Đơn");
+
+            const fileName = `HoaDon_${city}_${date}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+
+            alert('Dữ liệu đã được lưu thành công dưới dạng file Excel!');
+        }
+
+        calculateTotal();
+    </script>
+
+</body>
+</html>

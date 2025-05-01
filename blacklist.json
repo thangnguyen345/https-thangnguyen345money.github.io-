@@ -1,0 +1,17 @@
+{
+    "blacklist": [
+      {
+        "domain": "example1.com",
+        "reason": "Spam"
+      },
+      {
+        "domain": "example2.com",
+        "reason": "Phishing"
+      },
+      {
+        "domain": "example3.com",
+        "reason": "Malware"
+      }
+    ]
+  }
+  
